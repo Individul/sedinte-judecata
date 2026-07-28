@@ -14,13 +14,11 @@ export interface Profile {
   created_at: string;
 }
 
-/** The six numbers an operator types in for a given day. */
+/** The four numbers an operator types in for a given day. */
 export interface DailyInput {
   tc_prezenti: number;
-  tc_examinati_lipsa: number;
   tc_amanate: number;
   ij_prezenti: number;
-  ij_examinati_lipsa: number;
   ij_amanate: number;
 }
 

@@ -11,10 +11,8 @@ export interface SaveState {
 
 const FIELDS: (keyof DailyInput)[] = [
   "tc_prezenti",
-  "tc_examinati_lipsa",
   "tc_amanate",
   "ij_prezenti",
-  "ij_examinati_lipsa",
   "ij_amanate",
 ];
 

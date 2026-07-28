@@ -141,17 +141,13 @@ export default async function RapoartePage({
         <BreakdownCard
           title="Teleconferință"
           prezenti={ind.tcPrezenti}
-          examinati={ind.tcExaminatiLipsa}
           amanate={ind.tcAmanate}
-          petrecute={ind.tcPetrecute}
           total={ind.tcTotal}
         />
         <BreakdownCard
           title="Instanța de judecată"
           prezenti={ind.ijPrezenti}
-          examinati={ind.ijExaminatiLipsa}
           amanate={ind.ijAmanate}
-          petrecute={ind.ijPetrecute}
           total={ind.ijTotal}
         />
       </div>
@@ -237,16 +233,12 @@ export default async function RapoartePage({
 function BreakdownCard({
   title,
   prezenti,
-  examinati,
   amanate,
-  petrecute,
   total,
 }: {
   title: string;
   prezenti: number;
-  examinati: number;
   amanate: number;
-  petrecute: number;
   total: number;
 }) {
   const line = (label: string, value: number, strong = false) => (
@@ -273,9 +265,7 @@ function BreakdownCard({
       </CardHeader>
       <CardContent className="divide-y divide-slate-100">
         {line("Prezenți", prezenti)}
-        {line("Examinați în lipsa lor", examinati)}
         {line("Amânate", amanate)}
-        {line("Petrecute", petrecute, true)}
         {line("Total ședințe", total, true)}
       </CardContent>
     </Card>

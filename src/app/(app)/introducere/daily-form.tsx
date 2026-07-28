@@ -18,10 +18,8 @@ type Raw = Record<keyof DailyInput, string>;
 
 const EMPTY_RAW: Raw = {
   tc_prezenti: "",
-  tc_examinati_lipsa: "",
   tc_amanate: "",
   ij_prezenti: "",
-  ij_examinati_lipsa: "",
   ij_amanate: "",
 };
 
@@ -29,10 +27,8 @@ function toRaw(initial: DailySession | null): Raw {
   if (!initial) return { ...EMPTY_RAW };
   return {
     tc_prezenti: String(initial.tc_prezenti),
-    tc_examinati_lipsa: String(initial.tc_examinati_lipsa),
     tc_amanate: String(initial.tc_amanate),
     ij_prezenti: String(initial.ij_prezenti),
-    ij_examinati_lipsa: String(initial.ij_examinati_lipsa),
     ij_amanate: String(initial.ij_amanate),
   };
 }
@@ -56,10 +52,8 @@ export function DailyForm({
 
   const input: DailyInput = {
     tc_prezenti: num(raw.tc_prezenti),
-    tc_examinati_lipsa: num(raw.tc_examinati_lipsa),
     tc_amanate: num(raw.tc_amanate),
     ij_prezenti: num(raw.ij_prezenti),
-    ij_examinati_lipsa: num(raw.ij_examinati_lipsa),
     ij_amanate: num(raw.ij_amanate),
   };
   const ind = computeIndicators(input);
@@ -99,8 +93,7 @@ export function DailyForm({
           prezentiLabel="Prezenți"
           raw={raw}
           set={set}
-          keys={["tc_prezenti", "tc_examinati_lipsa", "tc_amanate"]}
-          petrecute={ind.tcPetrecute}
+          keys={["tc_prezenti", "tc_amanate"]}
           total={ind.tcTotal}
         />
         <CategoryCard
@@ -108,8 +101,7 @@ export function DailyForm({
           prezentiLabel="Prezenți în instanță"
           raw={raw}
           set={set}
-          keys={["ij_prezenti", "ij_examinati_lipsa", "ij_amanate"]}
-          petrecute={ind.ijPetrecute}
+          keys={["ij_prezenti", "ij_amanate"]}
           total={ind.ijTotal}
         />
       </div>
@@ -176,18 +168,16 @@ function CategoryCard({
   raw,
   set,
   keys,
-  petrecute,
   total,
 }: {
   title: string;
   prezentiLabel: string;
   raw: Raw;
   set: (k: keyof DailyInput, v: string) => void;
-  keys: [keyof DailyInput, keyof DailyInput, keyof DailyInput];
-  petrecute: number;
+  keys: [keyof DailyInput, keyof DailyInput];
   total: number;
 }) {
-  const [kPrez, kExam, kAman] = keys;
+  const [kPrez, kAman] = keys;
   return (
     <Card>
       <CardHeader>
@@ -196,24 +186,12 @@ function CategoryCard({
       <CardContent className="space-y-3">
         <Field label={prezentiLabel} name={kPrez} value={raw[kPrez]} onChange={set} />
         <Field
-          label="Examinați în lipsa lor"
-          name={kExam}
-          value={raw[kExam]}
-          onChange={set}
-        />
-        <Field
           label="Amânate ședințe"
           name={kAman}
           value={raw[kAman]}
           onChange={set}
         />
-        <div className="mt-1 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-          <span className="text-slate-500">
-            Petrecute{" "}
-            <b className="ml-1 text-slate-700 tabular-nums">
-              {formatNumber(petrecute)}
-            </b>
-          </span>
+        <div className="mt-1 flex items-center justify-end rounded-lg bg-slate-50 px-3 py-2 text-sm">
           <span className="text-slate-500">
             Total ședințe{" "}
             <b className="ml-1 text-blue-700 tabular-nums">
