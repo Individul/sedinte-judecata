@@ -32,7 +32,7 @@ export default async function IntroducerePage({
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
         Nu ai permisiunea de a introduce date. Rolul tău permite doar
         vizualizarea rapoartelor. Contactează un administrator dacă ai nevoie de
-        acces de operator.
+        acces de registrator.
       </div>
     );
   }

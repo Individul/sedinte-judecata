@@ -75,7 +75,7 @@ export function AdminPanel({
                 <Label htmlFor="role">Rol</Label>
                 <Select id="role" name="role" defaultValue="operator">
                   <option value="admin">Administrator</option>
-                  <option value="operator">Operator</option>
+                  <option value="operator">Registrator</option>
                   <option value="viewer">Vizualizator</option>
                 </Select>
               </div>
@@ -182,7 +182,7 @@ function RoleSelect({
         }}
       >
         <option value="admin">Administrator</option>
-        <option value="operator">Operator</option>
+        <option value="operator">Registrator</option>
         <option value="viewer">Vizualizator</option>
       </Select>
       {isSelf && <span className="text-xs text-slate-400">(tu)</span>}
