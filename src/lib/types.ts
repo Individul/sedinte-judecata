@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export interface Profile {
   id: string;
+  username: string | null;
   full_name: string | null;
   role: Role;
   created_at: string;

@@ -27,7 +27,7 @@ export default async function AdminPage() {
     const [{ data: list, error: listErr }, { data: profiles }] =
       await Promise.all([
         admin.auth.admin.listUsers({ page: 1, perPage: 200 }),
-        admin.from("profiles").select("id, role, full_name"),
+        admin.from("profiles").select("id, role, full_name, username"),
       ]);
 
     if (listErr) throw listErr;
@@ -41,7 +41,10 @@ export default async function AdminPage() {
         const p = byId.get(u.id);
         return {
           id: u.id,
-          email: u.email ?? "",
+          username:
+            (p?.username as string) ??
+            (u.user_metadata?.username as string) ??
+            "",
           fullName:
             (p?.full_name as string) ??
             (u.user_metadata?.full_name as string) ??
@@ -49,7 +52,7 @@ export default async function AdminPage() {
           role: ((p?.role as Role) ?? "viewer") as Role,
         };
       })
-      .sort((a, b) => a.email.localeCompare(b.email));
+      .sort((a, b) => a.username.localeCompare(b.username));
   } catch {
     listError =
       "Nu s-au putut încărca utilizatorii. Verifică variabila SUPABASE_SERVICE_ROLE_KEY.";

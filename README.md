@@ -27,9 +27,11 @@ ExcelJS · jsPDF.
 ## 1. Configurare Supabase
 
 1. Creează un cont și un proiect nou pe [supabase.com](https://supabase.com).
-2. În **SQL Editor → New query**, lipește tot conținutul fișierului
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) și
-   apasă **Run**. Se creează tabelele, rolurile, trigger-ele și politicile RLS.
+2. În **SQL Editor → New query**, rulează pe rând cele două migrări:
+   [`0001_init.sql`](supabase/migrations/0001_init.sql) (tabele, roluri,
+   trigger-e, RLS) și apoi
+   [`0002_username_login.sql`](supabase/migrations/0002_username_login.sql)
+   (autentificare cu nume de utilizator).
 3. Mergi la **Project Settings → API** și copiază:
    - **Project URL**
    - cheia **anon public**
@@ -51,17 +53,20 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 ## 3. Primul administrator
 
-1. În Supabase, **Authentication → Users → Add user**: introdu email + parolă
-   și bifează confirmarea automată a email-ului.
-2. În **SQL Editor**, ridică-l la rang de admin (înlocuiește email-ul):
+1. În Supabase, **Authentication → Users → Add user**: introdu un email + parolă
+   și bifează confirmarea automată. Email-ul e folosit doar intern —
+   autentificarea în aplicație se face cu **nume de utilizator**.
+2. În **SQL Editor**, ridică-l la admin și setează-i un username
+   (înlocuiește email-ul; alege username-ul dorit):
 
    ```sql
-   update public.profiles set role = 'admin'
+   update public.profiles set role = 'admin', username = 'admin'
    where id = (select id from auth.users where email = 'adminul-tau@exemplu.md');
    ```
 
-Ceilalți utilizatori îi creezi apoi direct din aplicație, pagina
-**Administrare**.
+3. Autentifică-te cu **numele de utilizator** și parola. Ceilalți utilizatori îi
+   creezi apoi din aplicație (pagina **Administrare**), direct cu username — fără
+   email.
 
 ## 4. Rulare locală
 

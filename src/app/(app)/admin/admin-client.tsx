@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface UserRow {
   id: string;
-  email: string;
+  username: string;
   fullName: string;
   role: Role;
 }
@@ -53,13 +53,12 @@ export function AdminPanel({
                 <Input id="full_name" name="full_name" placeholder="Ion Popescu" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Nume utilizator</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id="username"
+                  name="username"
                   required
-                  placeholder="nume@exemplu.md"
+                  placeholder="ex: ipopescu"
                 />
               </div>
               <div className="space-y-1.5">
@@ -126,7 +125,9 @@ export function AdminPanel({
                           <div className="font-medium text-slate-800">
                             {u.fullName || "—"}
                           </div>
-                          <div className="text-xs text-slate-500">{u.email}</div>
+                          <div className="text-xs text-slate-500">
+                            {u.username}
+                          </div>
                         </td>
                         <td className="py-2 pr-3">
                           <RoleSelect

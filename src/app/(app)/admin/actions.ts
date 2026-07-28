@@ -12,6 +12,10 @@ export interface AdminState {
 
 const ROLES: Role[] = ["admin", "operator", "viewer"];
 
+// Supabase requires an email per user; for username-only accounts we derive a
+// synthetic internal address. Login resolves the username back to this email.
+const USERNAME_EMAIL_DOMAIN = "sedinte-judecata.local";
+
 /** Returns the current user if they are an admin, otherwise null. */
 async function requireAdmin() {
   const supabase = await createClient();
@@ -36,32 +40,54 @@ export async function createUser(
     return { ok: false, message: "Doar administratorii pot crea utilizatori." };
   }
 
-  const email = String(formData.get("email") ?? "")
+  const username = String(formData.get("username") ?? "")
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
   const role = String(formData.get("role") ?? "viewer") as Role;
 
-  if (!email || !password) {
-    return { ok: false, message: "Email și parolă sunt obligatorii." };
-  }
-  if (password.length < 8) {
+  if (!username || !password) {
     return {
       ok: false,
-      message: "Parola trebuie să aibă minim 8 caractere.",
+      message: "Numele de utilizator și parola sunt obligatorii.",
     };
+  }
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    return {
+      ok: false,
+      message:
+        "Nume de utilizator invalid (litere mici, cifre, . _ - ; minim 3 caractere).",
+    };
+  }
+  if (password.length < 8) {
+    return { ok: false, message: "Parola trebuie să aibă minim 8 caractere." };
   }
   if (!ROLES.includes(role)) {
     return { ok: false, message: "Rol invalid." };
   }
 
   const adminClient = createAdminClient();
+
+  // Refuză username-urile deja folosite (verificare explicită, plus indexul unic).
+  const { data: existing } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+  if (existing) {
+    return {
+      ok: false,
+      message: "Acest nume de utilizator este deja folosit.",
+    };
+  }
+
+  const email = `${username}@${USERNAME_EMAIL_DOMAIN}`;
   const { error } = await adminClient.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName || email, role },
+    user_metadata: { full_name: fullName || username, role, username },
   });
 
   if (error) {
@@ -69,7 +95,7 @@ export async function createUser(
   }
 
   revalidatePath("/admin");
-  return { ok: true, message: `Utilizatorul ${email} a fost creat.` };
+  return { ok: true, message: `Utilizatorul „${username}" a fost creat.` };
 }
 
 export async function setUserRole(

@@ -1,39 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useActionState } from "react";
+import { login, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError("Email sau parolă incorecte.");
-      setLoading(false);
-      return;
-    }
-
-    router.replace("/");
-    router.refresh();
-  }
+  const [state, formAction, pending] = useActionState<LoginState, FormData>(
+    login,
+    { error: null },
+  );
 
   return (
     <div className="grid min-h-dvh place-items-center px-4">
@@ -51,19 +28,18 @@ export default function LoginPage() {
         </div>
 
         <form
-          onSubmit={onSubmit}
+          action={formAction}
           className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Nume utilizator</Label>
             <Input
-              id="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              name="username"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nume@exemplu.md"
+              autoFocus
+              placeholder="ex: ipopescu"
             />
           </div>
 
@@ -71,23 +47,22 @@ export default function LoginPage() {
             <Label htmlFor="password">Parolă</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               autoComplete="current-password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
           </div>
 
-          {error && (
+          {state.error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
+              {state.error}
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Se autentifică…" : "Autentificare"}
+          <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? "Se autentifică…" : "Autentificare"}
           </Button>
         </form>
       </div>
