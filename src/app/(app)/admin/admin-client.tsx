@@ -1,7 +1,13 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { createUser, setUserRole, type AdminState } from "./actions";
+import {
+  createUser,
+  setUserRole,
+  updateUser,
+  deleteUser,
+  type AdminState,
+} from "./actions";
 import type { Role } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +43,7 @@ export function AdminPanel({
           Administrare utilizatori
         </h1>
         <p className="text-sm text-slate-500">
-          Creează conturi și atribuie roluri.
+          Creează, editează și șterge conturi; atribuie roluri.
         </p>
       </div>
 
@@ -113,30 +119,16 @@ export function AdminPanel({
                     <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
                       <th className="py-2 pr-3 font-medium">Utilizator</th>
                       <th className="py-2 pr-3 font-medium">Rol</th>
+                      <th className="py-2 font-medium">Acțiuni</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr
+                      <UserItem
                         key={u.id}
-                        className="border-b border-slate-100 last:border-0"
-                      >
-                        <td className="py-2 pr-3">
-                          <div className="font-medium text-slate-800">
-                            {u.fullName || "—"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {u.username}
-                          </div>
-                        </td>
-                        <td className="py-2 pr-3">
-                          <RoleSelect
-                            userId={u.id}
-                            role={u.role}
-                            isSelf={u.id === currentUserId}
-                          />
-                        </td>
-                      </tr>
+                        user={u}
+                        isSelf={u.id === currentUserId}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -146,6 +138,161 @@ export function AdminPanel({
         </Card>
       </div>
     </div>
+  );
+}
+
+function UserItem({ user, isSelf }: { user: UserRow; isSelf: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [fullName, setFullName] = useState(user.fullName);
+  const [username, setUsername] = useState(user.username);
+  const [password, setPassword] = useState("");
+
+  function save() {
+    start(async () => {
+      const res = await updateUser(user.id, { fullName, username, password });
+      setMsg({ ok: res.ok, text: res.message });
+      if (res.ok) {
+        setEditing(false);
+        setPassword("");
+      }
+    });
+  }
+
+  function remove() {
+    if (
+      !window.confirm(
+        `Ștergi utilizatorul „${user.username}"? Acțiunea este ireversibilă.`,
+      )
+    ) {
+      return;
+    }
+    start(async () => {
+      const res = await deleteUser(user.id);
+      if (!res.ok) setMsg({ ok: false, text: res.message });
+    });
+  }
+
+  return (
+    <>
+      <tr className="border-b border-slate-100 last:border-0">
+        <td className="py-2 pr-3 align-top">
+          <div className="font-medium text-slate-800">
+            {user.fullName || "—"}
+          </div>
+          <div className="text-xs text-slate-500">{user.username}</div>
+        </td>
+        <td className="py-2 pr-3 align-top">
+          <RoleSelect userId={user.id} role={user.role} isSelf={isSelf} />
+        </td>
+        <td className="py-2 align-top">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditing((v) => !v);
+                setMsg(null);
+              }}
+            >
+              {editing ? "Închide" : "Editează"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="danger"
+              onClick={remove}
+              disabled={isSelf || pending}
+            >
+              Șterge
+            </Button>
+          </div>
+          {msg && !editing && (
+            <p
+              className={
+                msg.ok
+                  ? "mt-1 text-xs text-emerald-600"
+                  : "mt-1 text-xs text-red-600"
+              }
+            >
+              {msg.text}
+            </p>
+          )}
+        </td>
+      </tr>
+
+      {editing && (
+        <tr className="border-b border-slate-100">
+          <td colSpan={3} className="pb-4">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label>Nume complet</Label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nume utilizator</Label>
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Parolă nouă</Label>
+                  <Input
+                    type="text"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="gol = neschimbată"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={save}
+                  disabled={pending}
+                >
+                  {pending ? "Se salvează…" : "Salvează"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditing(false);
+                    setMsg(null);
+                    setFullName(user.fullName);
+                    setUsername(user.username);
+                    setPassword("");
+                  }}
+                >
+                  Anulează
+                </Button>
+                {msg && (
+                  <span
+                    className={
+                      msg.ok
+                        ? "text-xs text-emerald-600"
+                        : "text-xs text-red-600"
+                    }
+                  >
+                    {msg.text}
+                  </span>
+                )}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 

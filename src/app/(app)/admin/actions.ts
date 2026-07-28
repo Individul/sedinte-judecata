@@ -123,3 +123,83 @@ export async function setUserRole(
   revalidatePath("/admin");
   return { ok: true, message: "Rol actualizat." };
 }
+
+export async function updateUser(
+  userId: string,
+  data: { fullName: string; username: string; password: string },
+): Promise<AdminState> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, message: "Neautorizat." };
+
+  const username = data.username.trim().toLowerCase();
+  const fullName = data.fullName.trim();
+  const password = data.password;
+
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    return {
+      ok: false,
+      message:
+        "Nume de utilizator invalid (litere mici, cifre, . _ - ; minim 3 caractere).",
+    };
+  }
+  if (password && password.length < 8) {
+    return { ok: false, message: "Parola trebuie să aibă minim 8 caractere." };
+  }
+
+  const adminClient = createAdminClient();
+
+  // Username-ul trebuie să rămână unic (ignoră propriul rând).
+  const { data: clash } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .neq("id", userId)
+    .maybeSingle();
+  if (clash) {
+    return { ok: false, message: "Acest nume de utilizator este deja folosit." };
+  }
+
+  const { error: profileError } = await adminClient
+    .from("profiles")
+    .update({ full_name: fullName || username, username })
+    .eq("id", userId);
+  if (profileError) {
+    return { ok: false, message: `Eroare: ${profileError.message}` };
+  }
+
+  const attrs: { user_metadata: Record<string, unknown>; password?: string } = {
+    user_metadata: { full_name: fullName || username, username },
+  };
+  if (password) attrs.password = password;
+
+  const { error: authError } = await adminClient.auth.admin.updateUserById(
+    userId,
+    attrs,
+  );
+  if (authError) {
+    return { ok: false, message: `Eroare: ${authError.message}` };
+  }
+
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    message: password
+      ? "Utilizator actualizat, parolă schimbată."
+      : "Utilizator actualizat.",
+  };
+}
+
+export async function deleteUser(userId: string): Promise<AdminState> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, message: "Neautorizat." };
+  if (userId === admin.id) {
+    return { ok: false, message: "Nu îți poți șterge propriul cont." };
+  }
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+  if (error) return { ok: false, message: `Eroare: ${error.message}` };
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Utilizator șters." };
+}
