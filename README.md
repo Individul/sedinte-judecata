@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Evidența ședințelor de judecată
 
-## Getting Started
+Aplicație web pentru introducerea zilnică a ședințelor de judecată (agregat pe
+toate judecătoriile) și generarea de rapoarte pe **zi, săptămână, lună,
+trimestru, semestru și an**. Rulează pe **GitHub + Vercel**, cu **Supabase**
+(Postgres + autentificare) ca bază de date.
 
-First, run the development server:
+## Funcționalități
+
+- **Introducere zilnică** cu calcul automat în timp real (Total, Petrecute,
+  Amânate, La sediul judecătoriei).
+- **Două categorii**: Teleconferință și Instanța de judecată, fiecare cu
+  Prezenți / Examinați în lipsa lor / Amânate.
+- **Rapoarte** pe perioade predefinite sau interval personalizat, cu grafice,
+  tabel detaliat și **export CSV / Excel / PDF**.
+- **Roluri**: administrator, operator (introduce date), vizualizator (doar
+  rapoarte). Securitate la nivel de bază de date prin Row-Level Security.
+- **Administrare utilizatori** din interfață (creare conturi, atribuire roluri).
+
+## Stack
+
+Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · Supabase · Recharts ·
+ExcelJS · jsPDF.
+
+---
+
+## 1. Configurare Supabase
+
+1. Creează un cont și un proiect nou pe [supabase.com](https://supabase.com).
+2. În **SQL Editor → New query**, lipește tot conținutul fișierului
+   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) și
+   apasă **Run**. Se creează tabelele, rolurile, trigger-ele și politicile RLS.
+3. Mergi la **Project Settings → API** și copiază:
+   - **Project URL**
+   - cheia **anon public**
+   - cheia **service_role** (secretă)
+
+## 2. Variabile de mediu
+
+Copiază `.env.example` în `.env.local` și completează:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> `SUPABASE_SERVICE_ROLE_KEY` este secretă — se folosește doar pe server
+> (gestionarea utilizatorilor). Nu o pune niciodată într-o variabilă
+> `NEXT_PUBLIC_*`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 3. Primul administrator
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. În Supabase, **Authentication → Users → Add user**: introdu email + parolă
+   și bifează confirmarea automată a email-ului.
+2. În **SQL Editor**, ridică-l la rang de admin (înlocuiește email-ul):
 
-## Learn More
+   ```sql
+   update public.profiles set role = 'admin'
+   where id = (select id from auth.users where email = 'adminul-tau@exemplu.md');
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+Ceilalți utilizatori îi creezi apoi direct din aplicație, pagina
+**Administrare**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 4. Rulare locală
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Aplicația pornește pe [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 5. Deploy pe Vercel
+
+1. Urcă acest proiect într-un repo pe **GitHub** (rădăcina repo-ului este chiar
+   acest folder).
+2. Pe [vercel.com](https://vercel.com): **Add New → Project** și importă repo-ul.
+3. La **Environment Variables**, adaugă cele trei variabile de mai sus
+   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`).
+4. **Deploy**. La fiecare `git push` pe branch-ul principal, Vercel
+   reconstruiește automat.
+
+> Framework preset: **Next.js** (detectat automat). Nu e nevoie de configurări
+> suplimentare.
+
+---
+
+## Model de date
+
+Un singur rând pe zi în `daily_sessions` (agregat național). Cele șase cifre se
+introduc manual; totalurile sunt coloane calculate de Postgres:
+
+| Categorie            | Câmpuri introduse                          | Calculate                    |
+| -------------------- | ------------------------------------------ | ---------------------------- |
+| Teleconferință       | Prezenți, Examinați în lipsa lor, Amânate  | Total, Petrecute             |
+| Instanța de judecată | Prezenți, Examinați în lipsa lor, Amânate  | Total, Petrecute             |
+
+Indicatori derivați: `Total = Teleconferință.Total + Instanța.Total`,
+`Petrecute = Prezenți + Examinați în lipsa lor`, `La sediul judecătoriei =
+Instanța.Total`.
+
+## Structura proiectului
+
+```
+src/
+  app/
+    (app)/            # zona autentificată (panou, introducere, rapoarte, admin)
+    auth/signout/     # ieșire din cont
+    login/            # autentificare
+  components/         # UI, grafice, export
+  lib/
+    supabase/         # client browser / server / proxy / admin
+    calc.ts           # calculul indicatorilor
+    periods.ts        # intervale de timp + grupare pentru grafice
+    report.ts         # rânduri pentru tabel & export
+  proxy.ts            # protejarea rutelor + reîmprospătare sesiune
+supabase/migrations/  # schema SQL (RLS incluse)
+```
+
+## Note
+
+- Exportul **PDF** normalizează diacriticele la ASCII (fonturile implicite jsPDF
+  nu conțin glife românești). CSV și Excel păstrează diacriticele complet.
+- În Next.js 16, echivalentul „middleware" se numește **`proxy.ts`**.
