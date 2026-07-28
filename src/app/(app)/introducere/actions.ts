@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 import type { DailyInput } from "@/lib/types";
 
 export interface SaveState {
@@ -70,6 +71,14 @@ export async function saveDailySession(
   if (error) {
     return { ok: false, message: `Eroare la salvare: ${error.message}` };
   }
+
+  await logAudit({
+    actorId: user.id,
+    action: existing ? "session.update" : "session.create",
+    entity: "session",
+    entityLabel: date,
+    details: values as unknown as Record<string, unknown>,
+  });
 
   revalidatePath("/introducere");
   revalidatePath("/");

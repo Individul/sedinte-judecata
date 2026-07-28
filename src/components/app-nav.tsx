@@ -10,6 +10,7 @@ const LINKS: { href: string; label: string; roles: Role[] }[] = [
   { href: "/introducere", label: "Introducere", roles: ["admin", "operator"] },
   { href: "/rapoarte", label: "Rapoarte", roles: ["admin", "operator", "viewer"] },
   { href: "/admin", label: "Administrare", roles: ["admin"] },
+  { href: "/audit", label: "Audit", roles: ["admin"] },
 ];
 
 export function AppNav({ role }: { role: Role }) {

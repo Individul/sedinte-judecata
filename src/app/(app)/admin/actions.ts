@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/audit";
 import type { Role } from "@/lib/types";
 
 export interface AdminState {
@@ -94,6 +95,14 @@ export async function createUser(
     return { ok: false, message: `Eroare: ${error.message}` };
   }
 
+  await logAudit({
+    actorId: admin.id,
+    action: "user.create",
+    entity: "user",
+    entityLabel: username,
+    details: { role },
+  });
+
   revalidatePath("/admin");
   return { ok: true, message: `Utilizatorul „${username}" a fost creat.` };
 }
@@ -119,6 +128,19 @@ export async function setUserRole(
     .eq("id", userId);
 
   if (error) return { ok: false, message: `Eroare: ${error.message}` };
+
+  const { data: target } = await adminClient
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+  await logAudit({
+    actorId: admin.id,
+    action: "user.role_change",
+    entity: "user",
+    entityLabel: target?.username ?? userId,
+    details: { role },
+  });
 
   revalidatePath("/admin");
   return { ok: true, message: "Rol actualizat." };
@@ -180,6 +202,14 @@ export async function updateUser(
     return { ok: false, message: `Eroare: ${authError.message}` };
   }
 
+  await logAudit({
+    actorId: admin.id,
+    action: "user.update",
+    entity: "user",
+    entityLabel: username,
+    details: { passwordChanged: !!password },
+  });
+
   revalidatePath("/admin");
   return {
     ok: true,
@@ -197,8 +227,21 @@ export async function deleteUser(userId: string): Promise<AdminState> {
   }
 
   const adminClient = createAdminClient();
+  const { data: target } = await adminClient
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
   if (error) return { ok: false, message: `Eroare: ${error.message}` };
+
+  await logAudit({
+    actorId: admin.id,
+    action: "user.delete",
+    entity: "user",
+    entityLabel: target?.username ?? userId,
+  });
 
   revalidatePath("/admin");
   return { ok: true, message: "Utilizator șters." };
