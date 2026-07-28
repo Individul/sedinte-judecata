@@ -7,6 +7,7 @@ import type { Role } from "@/lib/types";
 
 const LINKS: { href: string; label: string; roles: Role[] }[] = [
   { href: "/", label: "Panou", roles: ["admin", "operator", "viewer"] },
+  { href: "/calendar", label: "Calendar", roles: ["admin", "operator", "viewer"] },
   { href: "/introducere", label: "Introducere", roles: ["admin", "operator"] },
   { href: "/rapoarte", label: "Rapoarte", roles: ["admin", "operator", "viewer"] },
   { href: "/admin", label: "Administrare", roles: ["admin"] },
